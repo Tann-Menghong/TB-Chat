@@ -1,0 +1,16 @@
+# Normalise text in the repository, and let each checkout use its own endings.
+* text=auto
+
+# The Gradle wrapper script is executed by /bin/sh on CI. A CRLF checkout makes
+# the shebang unparseable, so it is pinned to LF regardless of platform.
+gradlew text eol=lf
+*.sh text eol=lf
+
+gradlew.bat text eol=crlf
+
+*.jar binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.gguf binary
+*.png binary

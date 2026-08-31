@@ -8,6 +8,11 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# The release step attaches APKs to a tag, which needs write access. The
+# default token is read-only, so it is granted explicitly and only here.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
