@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application>
+
+        <!--
+          android:process=":inference" is the whole point of this module. Native
+          inference runs here so that a SIGSEGV or an out-of-memory kill takes
+          only this process, leaving the UI alive to explain what happened.
+
+          Note the absence of android.permission.INTERNET on this component: the
+          process that sees prompts has no way to send them anywhere.
+        -->
+        <service
+            android:name="com.tannmenghong.tbchat.inference.service.InferenceService"
+            android:process=":inference"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="On-device AI inference that must keep running while the screen is off, so a reply that takes minutes is not killed part-way through." />
+        </service>
+
+    </application>
+
+</manifest>

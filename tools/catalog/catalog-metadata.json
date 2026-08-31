@@ -1,0 +1,178 @@
+[
+ {
+  "id": "lfm2-350m-q4km",
+  "repo": "LiquidAI/LFM2-350M-GGUF",
+  "quant": "Q4_K_M",
+  "base": "LiquidAI/LFM2-350M",
+  "sha": "8fdc9d526b7ed346b19257551b05816c7912ecc2",
+  "gated": false,
+  "license": "other",
+  "file": {
+   "path": "LFM2-350M-Q4_K_M.gguf",
+   "size": 229309376,
+   "sha256": "a4d000c7064bd3b2e42c6845836286a899a4e79cf1791da1a6797b58d575957d"
+  },
+  "arch": {
+   "layers": 16,
+   "kvHeads": 8,
+   "headDim": 64,
+   "vocab": 65536,
+   "maxCtx": 128000,
+   "type": "lfm2"
+  }
+ },
+ {
+  "id": "qwen3-0_6b-q4km",
+  "repo": "unsloth/Qwen3-0.6B-GGUF",
+  "quant": "Q4_K_M",
+  "base": "Qwen/Qwen3-0.6B",
+  "sha": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+  "gated": false,
+  "license": "apache-2.0",
+  "file": {
+   "path": "Qwen3-0.6B-Q4_K_M.gguf",
+   "size": 396705472,
+   "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a"
+  },
+  "arch": {
+   "layers": 28,
+   "kvHeads": 8,
+   "headDim": 128,
+   "vocab": 151936,
+   "maxCtx": 40960,
+   "type": "qwen3"
+  }
+ },
+ {
+  "id": "qwen3-1_7b-q4km",
+  "repo": "unsloth/Qwen3-1.7B-GGUF",
+  "quant": "Q4_K_M",
+  "base": "Qwen/Qwen3-1.7B",
+  "sha": "d7f544eead698dbd1f15126ef60b45a1e1933222",
+  "gated": false,
+  "license": "apache-2.0",
+  "file": {
+   "path": "Qwen3-1.7B-Q4_K_M.gguf",
+   "size": 1107409472,
+   "sha256": "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897"
+  },
+  "arch": {
+   "layers": 28,
+   "kvHeads": 8,
+   "headDim": 128,
+   "vocab": 151936,
+   "maxCtx": 40960,
+   "type": "qwen3"
+  }
+ },
+ {
+  "id": "qwen3-4b-q4km",
+  "repo": "Qwen/Qwen3-4B-GGUF",
+  "quant": "Q4_K_M",
+  "base": "Qwen/Qwen3-4B",
+  "sha": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+  "gated": false,
+  "license": "apache-2.0",
+  "file": {
+   "path": "Qwen3-4B-Q4_K_M.gguf",
+   "size": 2497280256,
+   "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+  },
+  "arch": {
+   "layers": 36,
+   "kvHeads": 8,
+   "headDim": 128,
+   "vocab": 151936,
+   "maxCtx": 40960,
+   "type": "qwen3"
+  }
+ },
+ {
+  "id": "gemma3-1b-q4km",
+  "repo": "unsloth/gemma-3-1b-it-GGUF",
+  "quant": "Q4_K_M",
+  "base": "unsloth/gemma-3-1b-it",
+  "sha": "f0b45be0aac41bd6a100a4b5734cad5f67255bfb",
+  "gated": false,
+  "license": "gemma",
+  "file": {
+   "path": "gemma-3-1b-it-Q4_K_M.gguf",
+   "size": 806058272,
+   "sha256": "8270790f3ab69fdfe860b7b64008d9a19986d8df7e407bb018184caa08798ebd"
+  },
+  "arch": {
+   "layers": 26,
+   "kvHeads": 1,
+   "headDim": 256,
+   "vocab": 262144,
+   "maxCtx": 32768,
+   "type": "gemma3_text"
+  }
+ },
+ {
+  "id": "llama32-1b-q4km",
+  "repo": "unsloth/Llama-3.2-1B-Instruct-GGUF",
+  "quant": "Q4_K_M",
+  "base": "unsloth/Llama-3.2-1B-Instruct",
+  "sha": "b69aef112e9f895e6f98d7ae0949f72ff09aa401",
+  "gated": false,
+  "license": "llama3.2",
+  "file": {
+   "path": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+   "size": 807694368,
+   "sha256": "3f5a22426976ab26cfe84dba63c1d08391717abb1af893e10f1b2968d862dcc1"
+  },
+  "arch": {
+   "layers": 16,
+   "kvHeads": 8,
+   "headDim": 64,
+   "vocab": 128256,
+   "maxCtx": 131072,
+   "type": "llama"
+  }
+ },
+ {
+  "id": "smollm3-3b-q4km",
+  "repo": "ggml-org/SmolLM3-3B-GGUF",
+  "quant": "Q4_K_M",
+  "base": "HuggingFaceTB/SmolLM3-3B",
+  "sha": "4965cb60b150737b68a0408c36aeefb65078f894",
+  "gated": false,
+  "license": "apache-2.0",
+  "file": {
+   "path": "SmolLM3-Q4_K_M.gguf",
+   "size": 1915305312,
+   "sha256": "8334b850b7bd46238c16b0c550df2138f0889bf433809008cc17a8b05761863e"
+  },
+  "arch": {
+   "layers": 36,
+   "kvHeads": 4,
+   "headDim": 128,
+   "vocab": 128256,
+   "maxCtx": 65536,
+   "type": "smollm3"
+  }
+ },
+ {
+  "id": "phi4-mini-q4km",
+  "repo": "unsloth/Phi-4-mini-instruct-GGUF",
+  "quant": "Q4_K_M",
+  "base": "microsoft/Phi-4-mini-instruct",
+  "sha": "78eb92a46fc37e6b524df991ed9aca9bc6aa7b80",
+  "gated": false,
+  "license": "mit",
+  "file": {
+   "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
+   "size": 2491874272,
+   "sha256": "88c00229914083cd112853aab84ed51b87bdf6b9ce42f532d8c85c7c63b1730a"
+  },
+  "arch": {
+   "layers": 32,
+   "kvHeads": 8,
+   "headDim": 128,
+   "vocab": 200064,
+   "maxCtx": 131072,
+   "type": "phi3"
+  }
+ }
+]

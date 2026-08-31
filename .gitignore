@@ -1,0 +1,20 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+/keystore.properties
+
+# Model weights are never committed. They are downloaded at runtime.
+*.gguf
+*.safetensors
+*.onnx
+/models/
