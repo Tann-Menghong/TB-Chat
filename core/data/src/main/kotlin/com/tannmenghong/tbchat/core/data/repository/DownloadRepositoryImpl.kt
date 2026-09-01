@@ -1,8 +1,11 @@
 package com.tannmenghong.tbchat.core.data.repository
 
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
@@ -117,6 +120,30 @@ class DownloadRepositoryImpl @Inject constructor(
                 schedule(entity)
             }
         }
+    }
+
+    /**
+     * True when the system is still allowed to doze this app.
+     *
+     * Aggressive OEM skins -- vivo/iQOO, Xiaomi, OPPO in particular -- kill
+     * background workers within seconds unless the app is exempt, which stops a
+     * multi-gigabyte download dead with no error and no progress. Detecting it
+     * lets the UI ask, rather than leaving the user staring at a frozen bar.
+     */
+    fun isBatteryRestricted(): Boolean {
+        val pm = context.getSystemService(PowerManager::class.java) ?: return false
+        return !pm.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    /**
+     * Opens the system battery-optimisation list. The list screen is used rather
+     * than the direct "exempt me" dialog because the latter needs a permission
+     * that app stores treat as sensitive, and this achieves the same result.
+     */
+    fun openBatterySettings() {
+        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
     }
 
     /**

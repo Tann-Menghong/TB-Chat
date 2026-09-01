@@ -92,8 +92,18 @@ fun ModelsScreen(viewModel: ModelsViewModel = hiltViewModel()) {
                     }
                     // Offered only when that is genuinely what is blocking the
                     // queue, so it never appears as noise.
-                    if (viewModel.isBlockedByWifiOnly()) {
-                        Button(onClick = viewModel::useMobileData) { Text("Use mobile data") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (viewModel.isBlockedByWifiOnly()) {
+                            Button(onClick = viewModel::useMobileData) { Text("Use mobile data") }
+                        }
+                        // vivo/iQOO, Xiaomi and OPPO kill background workers
+                        // aggressively; without an exemption a large download
+                        // simply stops with no error.
+                        if (viewModel.isBatteryRestricted()) {
+                            OutlinedButton(onClick = viewModel::openBatterySettings) {
+                                Text("Allow background")
+                            }
+                        }
                     }
                 }
             }

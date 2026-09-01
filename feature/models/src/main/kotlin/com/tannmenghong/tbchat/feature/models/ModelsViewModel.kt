@@ -95,6 +95,14 @@ class ModelsViewModel @Inject constructor(
     /** True when a queued download is stalled purely because of Wi-Fi-only. */
     fun isBlockedByWifiOnly(): Boolean = downloadsImpl?.isBlockedByWifiOnly() == true
 
+    /**
+     * True when the OS may still kill the download worker. On vivo/iQOO, Xiaomi
+     * and OPPO this is the usual reason a download stops making progress.
+     */
+    fun isBatteryRestricted(): Boolean = downloadsImpl?.isBatteryRestricted() == true
+
+    fun openBatterySettings() = downloadsImpl?.openBatterySettings() ?: Unit
+
     /** Turns Wi-Fi-only off and restarts everything that was waiting on it. */
     fun useMobileData() {
         viewModelScope.launch {
