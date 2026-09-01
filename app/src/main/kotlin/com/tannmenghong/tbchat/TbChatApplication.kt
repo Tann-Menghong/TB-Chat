@@ -34,13 +34,28 @@ class TbChatApplication : Application(), Configuration.Provider {
             .build()
 
     override fun onCreate() {
+        // Installed before anything else so a failure during the rest of startup
+        // is recorded rather than lost. Never swallows the crash -- it persists a
+        // report and delegates to the platform handler.
+        CrashReporter.install(this)
+
         super.onCreate()
 
+        // A crash loop is almost always a model or setting that kills the process
+        // on every launch. Coming up without the startup work gives the user a
+        // reachable UI to delete the offending model instead of a death spiral.
+        val safeMode = CrashReporter.isInCrashLoop(this)
+
         appScope.launch {
-            models.seedIfEmpty()
-            // Nothing is running after a cold start, so any row still claiming
-            // to be RUNNING is a leftover from a killed process.
-            downloads.reconcileOnStartup()
+            // runCatching so a seeding or reconcile failure is logged and the app
+            // still starts, rather than an uncaught exception on a background
+            // dispatcher taking the process down at launch.
+            runCatching {
+                if (!safeMode) models.seedIfEmpty()
+                // Nothing is running after a cold start, so any row still claiming
+                // to be RUNNING is a leftover from a killed process.
+                downloads.reconcileOnStartup()
+            }.onFailure { android.util.Log.e("TbChatApplication", "startup work failed", it) }
         }
 
         // Finished downloads are promoted to installed models here rather than
