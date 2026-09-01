@@ -14,8 +14,8 @@ android {
         applicationId = "com.tannmenghong.tbchat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         // The native engine is arm64 only, so shipping other ABIs would produce
         // an APK that installs and then cannot run anything.

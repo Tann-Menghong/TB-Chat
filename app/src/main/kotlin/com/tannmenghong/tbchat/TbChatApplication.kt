@@ -1,6 +1,7 @@
 package com.tannmenghong.tbchat
 
 import android.app.Application
+import android.content.Context
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.tannmenghong.tbchat.core.common.ApplicationScope
@@ -33,12 +34,16 @@ class TbChatApplication : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
-    override fun onCreate() {
-        // Installed before anything else so a failure during the rest of startup
-        // is recorded rather than lost. Never swallows the crash -- it persists a
-        // report and delegates to the platform handler.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        // Installed here, the earliest point the app runs code, so a crash during
+        // content-provider init or dependency graph creation -- both of which
+        // happen before onCreate and are prime suspects for an immediate-on-open
+        // crash -- is recorded instead of vanishing silently.
         CrashReporter.install(this)
+    }
 
+    override fun onCreate() {
         super.onCreate()
 
         // A crash loop is almost always a model or setting that kills the process
