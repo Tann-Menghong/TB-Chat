@@ -56,7 +56,11 @@ data class ModelsUiState(
         get() = listings
             .filter { listing ->
                 when (filter) {
-                    ModelFilter.RUNNABLE -> listing.compatibility.canRun || listing.isInstalled
+                    // canDownload, not canRun: a model blocked only by how much
+                    // memory happens to be free this second would otherwise
+                    // vanish from the default view, leaving an empty list that
+                    // reads as "there are no models".
+                    ModelFilter.RUNNABLE -> listing.compatibility.canDownload || listing.isInstalled
                     ModelFilter.INSTALLED -> listing.isInstalled
                     ModelFilter.ALL -> true
                 }
@@ -68,7 +72,7 @@ data class ModelsUiState(
             }
 
     /** Shown above the list so the numbers below have something to stand against. */
-    val blockedCount: Int get() = listings.count { !it.compatibility.canRun }
+    val blockedCount: Int get() = listings.count { !it.compatibility.canDownload }
 }
 
 @HiltViewModel
@@ -181,10 +185,17 @@ class ModelsViewModel @Inject constructor(
      * bytes are already on disk.
      */
     fun download(listing: ModelListing) {
-        if (!listing.compatibility.canRun) {
-            transient.value = "This model will not run on this phone, so there is nothing to gain " +
-                "from downloading it."
+        // Only a permanent incompatibility blocks the fetch. Low free memory is
+        // a snapshot of this moment, not of when the model will be loaded, and
+        // refusing on it left every model undownloadable on a busy phone.
+        if (!listing.compatibility.canDownload) {
+            transient.value = "This phone cannot run this model at all, so there is nothing to " +
+                "gain from downloading it."
             return
+        }
+        if (!listing.compatibility.canRun) {
+            transient.value = "Downloading, but memory is tight right now. Close some apps before " +
+                "running it."
         }
 
         viewModelScope.launch {

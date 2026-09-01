@@ -316,8 +316,10 @@ private fun ModelCard(
                 else -> Button(
                     onClick = onDownload,
                     // Disabled rather than hidden: the user should see the
-                    // option exists and read why it is not available.
-                    enabled = listing.compatibility.canRun
+                    // option exists and read why it is not available. Gated on
+                    // canDownload, not canRun -- a model that is merely
+                    // memory-tight right now is still worth fetching.
+                    enabled = listing.compatibility.canDownload
                 ) { Text("Download ${Format.bytes(model.downloadBytes)}") }
             }
         }

@@ -119,4 +119,31 @@ sealed class Compatibility {
     }
 
     val canRun: Boolean get() = this !is Unsupported
+
+    /**
+     * Whether it is reasonable to *fetch* this model, which is a different
+     * question from whether it can run this second.
+     *
+     * Free memory is a snapshot: it changes the moment the user closes an app,
+     * and a download that takes twenty minutes says nothing about what will be
+     * free when the model is finally loaded. Gating the download on it makes
+     * every model undownloadable on a busy phone, which is indistinguishable
+     * from the download feature being broken.
+     *
+     * Only the permanent facts block a download: wrong ABI, no runtime in this
+     * build, an Android version too old, or genuinely no room on disk. A
+     * memory-tight model downloads, and is reported honestly as unlikely to run
+     * until memory is freed.
+     */
+    val canDownload: Boolean
+        get() = when (this) {
+            is Unsupported -> reasons.none {
+                it is Reason.UnsupportedAbi ||
+                    it is Reason.NoRuntime ||
+                    it is Reason.AndroidTooOld ||
+                    it is Reason.InsufficientStorage
+            }
+
+            else -> true
+        }
 }

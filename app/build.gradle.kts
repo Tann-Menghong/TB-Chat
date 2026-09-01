@@ -14,8 +14,8 @@ android {
         applicationId = "com.tannmenghong.tbchat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.0.6"
+        versionCode = 8
+        versionName = "1.0.7"
 
         // The native engine is arm64 only, so shipping other ABIs would produce
         // an APK that installs and then cannot run anything.
@@ -44,6 +44,22 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
+            // CI runners are ephemeral, so each build would otherwise generate a
+            // fresh random debug keystore. Every release would then be signed
+            // with a different key, and Android refuses to update an installed
+            // app whose signature changed ("package conflicts with an existing
+            // package"). A committed debug keystore keeps the signature stable
+            // so debug builds update in place. Safe to commit: the credentials
+            // are the well-known Android debug defaults and grant nothing.
+            val debugStore = rootProject.file("debug.keystore")
+            if (debugStore.exists()) {
+                signingConfig = signingConfigs.getByName("debug").apply {
+                    storeFile = debugStore
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
+            }
         }
         release {
             isMinifyEnabled = true
