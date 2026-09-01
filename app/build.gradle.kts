@@ -24,6 +24,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Release signing is driven entirely by environment variables so no
+        // keystore or password is ever committed. When they are absent -- a local
+        // build, or CI without the secrets configured -- the release APK is left
+        // unsigned rather than failing the build.
+        create("release") {
+            val storePath = System.getenv("TBCHAT_KEYSTORE")
+            if (!storePath.isNullOrBlank() && file(storePath).exists()) {
+                storeFile = file(storePath)
+                storePassword = System.getenv("TBCHAT_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("TBCHAT_KEY_ALIAS")
+                keyPassword = System.getenv("TBCHAT_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -36,8 +52,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Unsigned by default; CI or a local keystore supplies the signing
-            // config rather than committing one to the repository.
+            // Signed only when the keystore env vars are present; otherwise the
+            // APK is emitted unsigned (app-release-unsigned.apk) exactly as before.
+            val storePath = System.getenv("TBCHAT_KEYSTORE")
+            signingConfig = if (!storePath.isNullOrBlank() && file(storePath).exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
         }
     }
 

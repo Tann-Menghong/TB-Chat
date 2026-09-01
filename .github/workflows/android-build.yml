@@ -46,7 +46,22 @@ jobs:
         run: ./gradlew :app:assembleDebug --stacktrace
 
       - name: Assemble release
-        run: ./gradlew :app:assembleRelease --stacktrace
+        # Signs the release APK when the keystore secrets are configured; falls
+        # back to an unsigned APK otherwise so the build never breaks.
+        env:
+          TBCHAT_KEYSTORE_BASE64: ${{ secrets.TBCHAT_KEYSTORE_BASE64 }}
+          TBCHAT_KEYSTORE_PASSWORD: ${{ secrets.TBCHAT_KEYSTORE_PASSWORD }}
+          TBCHAT_KEY_ALIAS: ${{ secrets.TBCHAT_KEY_ALIAS }}
+          TBCHAT_KEY_PASSWORD: ${{ secrets.TBCHAT_KEY_PASSWORD }}
+        run: |
+          if [ -n "$TBCHAT_KEYSTORE_BASE64" ]; then
+            echo "$TBCHAT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/tbchat-release.jks"
+            export TBCHAT_KEYSTORE="$RUNNER_TEMP/tbchat-release.jks"
+            echo "Release signing: enabled"
+          else
+            echo "Release signing: disabled (no keystore secret); APK will be unsigned"
+          fi
+          ./gradlew :app:assembleRelease --stacktrace
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
