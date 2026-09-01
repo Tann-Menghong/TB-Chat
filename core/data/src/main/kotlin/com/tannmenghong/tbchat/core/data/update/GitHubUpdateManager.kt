@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import com.tannmenghong.tbchat.core.common.IoDispatcher
 import com.tannmenghong.tbchat.core.data.database.NetworkEventDao
 import com.tannmenghong.tbchat.core.data.database.NetworkEventEntity
@@ -189,7 +190,8 @@ class GitHubUpdateManager @Inject constructor(
 
     private fun readInstalledVersion(): AppVersion {
         val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
-        val code = pkg.longVersionCode
+        // longVersionCode is API 28+; PackageInfoCompat keeps API 26/27 working.
+        val code = PackageInfoCompat.getLongVersionCode(pkg)
         // Strip a debug/build suffix so "1.0.1-debug" still compares as 1.0.1.
         val name = (pkg.versionName ?: "0").substringBefore('-')
         return AppVersion(name = name, code = code)

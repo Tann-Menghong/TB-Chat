@@ -18,7 +18,7 @@
 
     <!--
         Self-update: the app can offer to install a newer signed APK it fetched
-        from its GitHub release. The install is never silent -- Android's package
+        from its GitHub release. The install is never silent. Android's package
         installer shows its own confirmation, and the user must have granted this
         app the "install unknown apps" permission first.
     -->
