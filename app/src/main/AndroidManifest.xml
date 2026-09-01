@@ -16,6 +16,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <!--
+        Self-update: the app can offer to install a newer signed APK it fetched
+        from its GitHub release. The install is never silent -- Android's package
+        installer shows its own confirmation, and the user must have granted this
+        app the "install unknown apps" permission first.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".TbChatApplication"
         android:allowBackup="false"
@@ -41,6 +49,21 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup"
                 tools:node="remove" />
+        </provider>
+
+        <!--
+            Grants the package installer temporary read access to the downloaded
+            APK in our cache. The authority uses ${applicationId} so debug and
+            release builds (which differ by a .debug suffix) never collide.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
         </provider>
 
         <activity

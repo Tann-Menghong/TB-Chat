@@ -3,22 +3,47 @@ package com.tannmenghong.tbchat.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannmenghong.tbchat.core.device.ThermalGovernor
+import com.tannmenghong.tbchat.domain.model.AppRelease
 import com.tannmenghong.tbchat.domain.model.AppSettings
 import com.tannmenghong.tbchat.domain.model.NetworkEvent
 import com.tannmenghong.tbchat.domain.model.PerformanceMode
+import com.tannmenghong.tbchat.domain.model.UpdateCheck
+import com.tannmenghong.tbchat.domain.model.UpdateProgress
 import com.tannmenghong.tbchat.domain.repository.DeviceRepository
 import com.tannmenghong.tbchat.domain.repository.NetworkLogRepository
 import com.tannmenghong.tbchat.domain.repository.SettingsRepository
+import com.tannmenghong.tbchat.domain.repository.UpdateRepository
 import com.tannmenghong.tbchat.inference.api.DeviceProfile
 import com.tannmenghong.tbchat.inference.service.InferenceClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** The self-update flow, surfaced as an explicit state the Settings screen renders. */
+sealed interface UpdateUiState {
+    data object Idle : UpdateUiState
+    data object Checking : UpdateUiState
+    data object UpToDate : UpdateUiState
+    data object Offline : UpdateUiState
+    data class Available(val release: AppRelease) : UpdateUiState
+    data class Downloading(
+        val fraction: Float,
+        val downloadedBytes: Long,
+        val totalBytes: Long,
+        val bytesPerSecond: Long
+    ) : UpdateUiState
+
+    data object Verifying : UpdateUiState
+    data class ReadyToInstall(val apkPath: String, val needsPermission: Boolean) : UpdateUiState
+    data class Failed(val message: String) : UpdateUiState
+}
 
 data class SettingsUiState(
     val settings: AppSettings = AppSettings(),
@@ -34,10 +59,19 @@ class SettingsViewModel @Inject constructor(
     private val device: DeviceRepository,
     private val networkLog: NetworkLogRepository,
     private val inference: InferenceClient,
-    private val thermal: ThermalGovernor
+    private val thermal: ThermalGovernor,
+    private val update: UpdateRepository
 ) : ViewModel() {
 
     private val resident = MutableStateFlow<Long?>(null)
+
+    /** Shown in the Updates section; read once from the installed package. */
+    val currentVersionName: String = update.currentVersion.name
+
+    private val _update = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
+    val updateUi: StateFlow<UpdateUiState> = _update.asStateFlow()
+
+    private var downloadJob: Job? = null
 
     val ui: StateFlow<SettingsUiState> = combine(
         settings.settings,
@@ -92,6 +126,73 @@ class SettingsViewModel @Inject constructor(
 
     fun clearNetworkLog() {
         viewModelScope.launch { networkLog.clear() }
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _update.value = UpdateUiState.Checking
+            update.check()
+                .onSuccess { result ->
+                    _update.value = when (result) {
+                        is UpdateCheck.Available -> UpdateUiState.Available(result.release)
+                        is UpdateCheck.UpToDate -> UpdateUiState.UpToDate
+                        UpdateCheck.OfflineBlocked -> UpdateUiState.Offline
+                    }
+                }
+                .onFailure {
+                    _update.value = UpdateUiState.Failed(it.message ?: "Could not check for updates.")
+                }
+        }
+    }
+
+    fun downloadUpdate(release: AppRelease) {
+        downloadJob?.cancel()
+        downloadJob = viewModelScope.launch {
+            update.downloadAndPrepare(release).collect { progress ->
+                _update.value = when (progress) {
+                    is UpdateProgress.Downloading -> UpdateUiState.Downloading(
+                        fraction = progress.fraction,
+                        downloadedBytes = progress.downloadedBytes,
+                        totalBytes = progress.totalBytes,
+                        bytesPerSecond = progress.bytesPerSecond
+                    )
+
+                    UpdateProgress.Verifying -> UpdateUiState.Verifying
+                    is UpdateProgress.ReadyToInstall -> UpdateUiState.ReadyToInstall(
+                        apkPath = progress.apkPath,
+                        needsPermission = !update.canRequestInstall()
+                    )
+
+                    is UpdateProgress.Failed -> UpdateUiState.Failed(progress.message)
+                }
+            }
+        }
+    }
+
+    fun cancelUpdateDownload() {
+        downloadJob?.cancel()
+        _update.value = UpdateUiState.Idle
+    }
+
+    /**
+     * Hands the verified APK to Android's installer, or sends the user to grant
+     * the install permission first. Never installs silently.
+     */
+    fun installUpdate() {
+        val ready = _update.value as? UpdateUiState.ReadyToInstall ?: return
+        if (update.canRequestInstall()) {
+            update.installPrepared(ready.apkPath)
+        } else {
+            update.requestInstallPermission()
+            _update.value = ready.copy(needsPermission = true)
+        }
+    }
+
+    fun grantInstallPermission() = update.requestInstallPermission()
+
+    fun dismissUpdate() {
+        downloadJob?.cancel()
+        _update.value = UpdateUiState.Idle
     }
 
     private fun update(transform: (AppSettings) -> AppSettings) {

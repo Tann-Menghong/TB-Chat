@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -31,6 +33,7 @@ import com.tannmenghong.tbchat.core.common.Format
 import com.tannmenghong.tbchat.core.designsystem.Dimens
 import com.tannmenghong.tbchat.core.designsystem.MonoNumberStyle
 import com.tannmenghong.tbchat.core.designsystem.OutlinedSurface
+import com.tannmenghong.tbchat.core.designsystem.ProgressBar
 import com.tannmenghong.tbchat.core.designsystem.SectionHeader
 import com.tannmenghong.tbchat.core.designsystem.SpecRow
 import com.tannmenghong.tbchat.domain.model.PerformanceMode
@@ -40,6 +43,7 @@ import com.tannmenghong.tbchat.domain.model.PerformanceMode
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.ui.collectAsStateWithLifecycle()
     val settings = state.settings
+    val updateState by viewModel.updateUi.collectAsStateWithLifecycle()
 
     Scaffold(topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
         Column(
@@ -215,6 +219,21 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
 
             OutlinedSurface {
+                SectionHeader("Updates")
+                SpecRow("Installed version", viewModel.currentVersionName)
+                Spacer(Modifier.height(8.dp))
+                UpdatesBody(
+                    state = updateState,
+                    onCheck = viewModel::checkForUpdates,
+                    onDownload = viewModel::downloadUpdate,
+                    onInstall = viewModel::installUpdate,
+                    onGrantPermission = viewModel::grantInstallPermission,
+                    onCancel = viewModel::cancelUpdateDownload,
+                    onDismiss = viewModel::dismissUpdate
+                )
+            }
+
+            OutlinedSurface {
                 SectionHeader("About")
                 Text(
                     "TB-Chat runs open language models entirely on your phone using llama.cpp. " +
@@ -222,6 +241,116 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdatesBody(
+    state: UpdateUiState,
+    onCheck: () -> Unit,
+    onDownload: (com.tannmenghong.tbchat.domain.model.AppRelease) -> Unit,
+    onInstall: () -> Unit,
+    onGrantPermission: () -> Unit,
+    onCancel: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    when (state) {
+        UpdateUiState.Idle,
+        UpdateUiState.UpToDate,
+        UpdateUiState.Offline,
+        is UpdateUiState.Failed -> {
+            val note = when (state) {
+                UpdateUiState.UpToDate -> "You are on the latest version."
+                UpdateUiState.Offline -> "Offline mode is on, so no update check was made."
+                is UpdateUiState.Failed -> state.message
+                else -> "Updates are downloaded from the app's GitHub releases and verified before install."
+            }
+            Text(
+                note,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state is UpdateUiState.Failed) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onCheck) { Text("Check for updates") }
+        }
+
+        UpdateUiState.Checking -> {
+            ProgressBar(null)
+            Spacer(Modifier.height(6.dp))
+            Text("Checking…", style = MaterialTheme.typography.bodySmall)
+        }
+
+        is UpdateUiState.Available -> {
+            Text(
+                "Version ${state.release.versionName} is available.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (state.release.notes.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    state.release.notes.take(400),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { onDownload(state.release) }) {
+                    Text("Download ${Format.bytes(state.release.apkSizeBytes)}")
+                }
+                TextButton(onClick = onDismiss) { Text("Not now") }
+            }
+        }
+
+        is UpdateUiState.Downloading -> {
+            ProgressBar(if (state.totalBytes > 0) state.fraction else null)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                buildString {
+                    append(Format.bytes(state.downloadedBytes)).append(" / ")
+                    append(Format.bytes(state.totalBytes))
+                    if (state.bytesPerSecond > 0) {
+                        append("  ").append(Format.bytesPerSecond(state.bytesPerSecond))
+                    }
+                },
+                style = MonoNumberStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onCancel) { Text("Cancel") }
+        }
+
+        UpdateUiState.Verifying -> {
+            ProgressBar(null)
+            Spacer(Modifier.height(6.dp))
+            Text("Verifying the download…", style = MaterialTheme.typography.bodySmall)
+        }
+
+        is UpdateUiState.ReadyToInstall -> {
+            if (state.needsPermission) {
+                Text(
+                    "Allow TB-Chat to install apps to finish updating. Android will ask you to " +
+                        "confirm the install itself.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onGrantPermission) { Text("Allow installs") }
+                    Button(onClick = onInstall) { Text("Try again") }
+                }
+            } else {
+                Text(
+                    "Downloaded and verified. Android will ask you to confirm.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onInstall) { Text("Install now") }
             }
         }
     }

@@ -1,11 +1,15 @@
 package com.tannmenghong.tbchat.domain.repository
 
+import com.tannmenghong.tbchat.domain.model.AppRelease
 import com.tannmenghong.tbchat.domain.model.AppSettings
+import com.tannmenghong.tbchat.domain.model.AppVersion
 import com.tannmenghong.tbchat.domain.model.Conversation
 import com.tannmenghong.tbchat.domain.model.DownloadJob
 import com.tannmenghong.tbchat.domain.model.InstalledModel
 import com.tannmenghong.tbchat.domain.model.Message
 import com.tannmenghong.tbchat.domain.model.NetworkEvent
+import com.tannmenghong.tbchat.domain.model.UpdateCheck
+import com.tannmenghong.tbchat.domain.model.UpdateProgress
 import com.tannmenghong.tbchat.inference.api.AiModel
 import com.tannmenghong.tbchat.inference.api.ChatMessage
 import com.tannmenghong.tbchat.inference.api.DeviceProfile
@@ -99,4 +103,33 @@ interface NetworkLogRepository {
     suspend fun record(host: String, purpose: String, bytes: Long)
 
     suspend fun clear()
+}
+
+/**
+ * Checks the distribution channel for a newer build and prepares its APK for
+ * installation. Deliberately never installs silently: [installPrepared] hands
+ * the verified file to Android's package installer, which shows the system
+ * confirmation dialog, and installs require the user's "unknown sources" grant.
+ */
+interface UpdateRepository {
+    /** The version currently running, read from the installed package. */
+    val currentVersion: AppVersion
+
+    /** Contacts the channel (unless offline mode is on) and compares versions. */
+    suspend fun check(): Result<UpdateCheck>
+
+    /**
+     * Downloads the release APK to app cache, verifies its size and digest, and
+     * emits progress. A cold flow: cancelling collection cancels the download.
+     */
+    fun downloadAndPrepare(release: AppRelease): Flow<UpdateProgress>
+
+    /** Launches the system package installer for an already-verified APK. */
+    fun installPrepared(apkPath: String)
+
+    /** False when the user has not granted permission to install from this app. */
+    fun canRequestInstall(): Boolean
+
+    /** Opens the system screen where the install-unknown-apps grant is given. */
+    fun requestInstallPermission()
 }

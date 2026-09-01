@@ -16,12 +16,14 @@ import com.tannmenghong.tbchat.core.data.repository.DownloadRepositoryImpl
 import com.tannmenghong.tbchat.core.data.repository.ModelRepositoryImpl
 import com.tannmenghong.tbchat.core.data.repository.NetworkLogRepositoryImpl
 import com.tannmenghong.tbchat.core.data.repository.SettingsRepositoryImpl
+import com.tannmenghong.tbchat.core.data.update.GitHubUpdateManager
 import com.tannmenghong.tbchat.domain.repository.ConversationRepository
 import com.tannmenghong.tbchat.domain.repository.DeviceRepository
 import com.tannmenghong.tbchat.domain.repository.DownloadRepository
 import com.tannmenghong.tbchat.domain.repository.ModelRepository
 import com.tannmenghong.tbchat.domain.repository.NetworkLogRepository
 import com.tannmenghong.tbchat.domain.repository.SettingsRepository
+import com.tannmenghong.tbchat.domain.repository.UpdateRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -83,4 +85,5 @@ abstract class RepositoryModule {
     @Binds abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
     @Binds abstract fun bindDeviceRepository(impl: DeviceRepositoryImpl): DeviceRepository
     @Binds abstract fun bindNetworkLogRepository(impl: NetworkLogRepositoryImpl): NetworkLogRepository
+    @Binds abstract fun bindUpdateRepository(impl: GitHubUpdateManager): UpdateRepository
 }
