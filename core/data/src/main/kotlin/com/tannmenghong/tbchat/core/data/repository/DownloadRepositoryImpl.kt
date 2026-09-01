@@ -226,9 +226,12 @@ class DownloadRepositoryImpl @Inject constructor(
             .setRequiredNetworkType(
                 if (job.requiresUnmetered) NetworkType.UNMETERED else NetworkType.CONNECTED
             )
-            // Multi-gigabyte writes on a nearly full disk fail in confusing
-            // ways; letting the system hold the job is cleaner than failing it.
-            .setRequiresStorageNotLow(true)
+            // Deliberately NOT setRequiresStorageNotLow: that constraint makes
+            // WorkManager hold the job silently, with the row stuck at QUEUED,
+            // no error and no progress -- indistinguishable from the download
+            // being broken. enqueue() already checks free space up front with a
+            // 512 MB headroom and fails loudly with the actual numbers, which
+            // is the same protection with an explanation attached.
             .build()
 
         val request = OneTimeWorkRequestBuilder<ModelDownloadWorker>()
