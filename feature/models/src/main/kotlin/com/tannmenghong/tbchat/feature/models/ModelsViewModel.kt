@@ -80,6 +80,25 @@ class ModelsViewModel @Inject constructor(
     private val inference: InferenceClient
 ) : ViewModel() {
 
+    /**
+     * The concrete repository, for the two operations that are implementation
+     * detail rather than part of the domain contract: detecting a Wi-Fi-blocked
+     * queue and lifting that restriction.
+     */
+    private val downloadsImpl: DownloadRepositoryImpl?
+        get() = downloads as? DownloadRepositoryImpl
+
+    /** True when a queued download is stalled purely because of Wi-Fi-only. */
+    fun isBlockedByWifiOnly(): Boolean = downloadsImpl?.isBlockedByWifiOnly() == true
+
+    /** Turns Wi-Fi-only off and restarts everything that was waiting on it. */
+    fun useMobileData() {
+        viewModelScope.launch {
+            downloadsImpl?.allowMeteredDownloads()
+            transient.value = "Mobile data allowed. Queued downloads are starting."
+        }
+    }
+
     private val filter = MutableStateFlow(ModelFilter.RUNNABLE)
     private val query = MutableStateFlow("")
     private val transient = MutableStateFlow<String?>(null)
@@ -201,7 +220,17 @@ class ModelsViewModel @Inject constructor(
         }
 
         downloads.enqueue(model)
-            .onSuccess { transient.value = "Downloading ${model.displayName}." }
+            .onSuccess {
+                // A Wi-Fi-only job on mobile data is held by WorkManager with no
+                // error and no progress, which reads as "the download does
+                // nothing". Say so, and offer the one-tap way out.
+                transient.value = if (downloadsImpl?.isBlockedByWifiOnly() == true) {
+                    "${model.displayName} is queued, but downloads are set to Wi-Fi only and " +
+                        "you are on mobile data. Tap \"Use mobile data\" to start it now."
+                } else {
+                    "Downloading ${model.displayName}."
+                }
+            }
             .onFailure { cause ->
                 transient.value = when (cause) {
                     is DownloadRepositoryImpl.InsufficientStorageException ->

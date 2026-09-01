@@ -81,12 +81,20 @@ fun ModelsScreen(viewModel: ModelsViewModel = hiltViewModel()) {
         Column(Modifier.fillMaxSize().padding(padding)) {
 
             state.message?.let { message ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(Dimens.gutter),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(message, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                    TextButton(onClick = viewModel::dismissMessage) { Text("OK") }
+                Column(modifier = Modifier.fillMaxWidth().padding(Dimens.gutter)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            message,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = viewModel::dismissMessage) { Text("OK") }
+                    }
+                    // Offered only when that is genuinely what is blocking the
+                    // queue, so it never appears as noise.
+                    if (viewModel.isBlockedByWifiOnly()) {
+                        Button(onClick = viewModel::useMobileData) { Text("Use mobile data") }
+                    }
                 }
             }
 

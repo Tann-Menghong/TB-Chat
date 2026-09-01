@@ -1,6 +1,8 @@
 package com.tannmenghong.tbchat.core.data.repository
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
@@ -117,6 +119,39 @@ class DownloadRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * True when a queued download cannot start because Wi-Fi-only is on and the
+     * phone is on mobile data.
+     *
+     * Without this the failure is invisible: WorkManager simply holds the job,
+     * so the row sits at QUEUED with an empty progress bar and no error, which
+     * reads to the user as "the download does nothing".
+     */
+    fun isBlockedByWifiOnly(): Boolean {
+        val cm = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        val connected = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        val unmetered = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        return connected && !unmetered
+    }
+
+    /**
+     * Turns Wi-Fi-only off and re-schedules every job that was waiting on it, so
+     * the change takes effect immediately instead of at the next app start.
+     */
+    suspend fun allowMeteredDownloads() = withContext(ioDispatcher) {
+        settings.update { it.copy(wifiOnlyDownloads = false) }
+        val now = System.currentTimeMillis()
+        jobDao.forAllWaiting().forEach { job ->
+            val updated = job.copy(requiresUnmetered = false, status = DownloadStatus.QUEUED, updatedAt = now)
+            jobDao.update(updated)
+            // The existing unique work carries the old constraint, so it must be
+            // replaced rather than kept.
+            workManager.cancelUniqueWork(ModelDownloadWorker.tagFor(job.id))
+            schedule(updated, replace = true)
+        }
+    }
+
     override suspend fun pause(jobId: String) = withContext(ioDispatcher) {
         jobDao.setStatus(jobId, DownloadStatus.PAUSED, null, System.currentTimeMillis())
         // Cancelling the worker is what actually stops the transfer; the status
@@ -159,7 +194,7 @@ class DownloadRepositoryImpl @Inject constructor(
         true
     }
 
-    private fun schedule(job: DownloadJobEntity) {
+    private fun schedule(job: DownloadJobEntity, replace: Boolean = false) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(
                 if (job.requiresUnmetered) NetworkType.UNMETERED else NetworkType.CONNECTED
@@ -180,8 +215,9 @@ class DownloadRepositoryImpl @Inject constructor(
         workManager.enqueueUniqueWork(
             ModelDownloadWorker.tagFor(job.id),
             // KEEP, not REPLACE: a running transfer should not be restarted from
-            // zero because the user tapped the button twice.
-            ExistingWorkPolicy.KEEP,
+            // zero because the user tapped the button twice. REPLACE only when
+            // the constraints themselves changed, e.g. Wi-Fi-only was turned off.
+            if (replace) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP,
             request
         )
     }

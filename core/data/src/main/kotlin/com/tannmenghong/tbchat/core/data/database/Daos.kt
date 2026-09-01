@@ -79,6 +79,10 @@ interface DownloadJobDao {
     @Query("SELECT * FROM download_job WHERE modelId = :modelId")
     suspend fun forModel(modelId: String): List<DownloadJobEntity>
 
+    /** Jobs held before any bytes moved, e.g. by an unmet Wi-Fi constraint. */
+    @Query("SELECT * FROM download_job WHERE status IN ('QUEUED','PAUSED')")
+    suspend fun forAllWaiting(): List<DownloadJobEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: DownloadJobEntity)
 
