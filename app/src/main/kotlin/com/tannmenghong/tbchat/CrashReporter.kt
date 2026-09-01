@@ -133,8 +133,20 @@ object CrashReporter {
             ?.mapNotNull { it.trim().toLongOrNull() }
             ?: emptyList()
 
-    private fun crashDir(context: Context): File =
-        File(context.filesDir, CRASH_LOG_DIR).apply { mkdirs() }
+    /**
+     * Crash reports live in external app storage rather than private filesDir.
+     *
+     * Both are app-scoped and removed on uninstall, but the external one is
+     * browsable in the phone's Files app under
+     * Android/data/<package>/files/crash. Without adb that is the only way a
+     * user can actually retrieve a stack trace and send it on, and a crash
+     * report nobody can read is not a diagnostic.
+     */
+    private fun crashDir(context: Context): File {
+        val external = runCatching { context.getExternalFilesDir(null) }.getOrNull()
+        val base = external ?: context.filesDir
+        return File(base, CRASH_LOG_DIR).apply { mkdirs() }
+    }
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
